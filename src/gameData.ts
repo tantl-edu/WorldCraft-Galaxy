@@ -1,6 +1,7 @@
 export type Resource = {
   id: string;
   name: string;
+  origin: string;
   amount: number;
   value: number;
   rarity: "Common" | "Useful" | "Rare" | "Legendary";
@@ -13,7 +14,15 @@ export type BuildBlock = {
   id: string;
   label: string;
   resourceId: string;
+  origin: string;
+  category: "terrain" | "plant" | "building" | "special";
   color: string;
+};
+
+export type PlacedBlock = BuildBlock & {
+  instanceId: string;
+  x: number;
+  z: number;
 };
 
 export type TradeOffer = {
@@ -29,13 +38,14 @@ export const starterPlanet = {
   system: "Velora System",
   privacy: "Private build, visitors read-only",
   description:
-    "A floating-island planet with warm oceans, bright clay cliffs, and mineral caves beneath glassy forests.",
+    "A wide starter world with rivers, forests, desert, and mountains. Build towns anywhere on the terrain and trade for blocks from other planets.",
 };
 
 export const resources: Resource[] = [
   {
     id: "water",
     name: "Water",
+    origin: "Auralis Reach",
     amount: 84,
     value: 3,
     rarity: "Common",
@@ -46,6 +56,7 @@ export const resources: Resource[] = [
   {
     id: "wood",
     name: "Prismwood",
+    origin: "Viretta Canopy",
     amount: 48,
     value: 5,
     rarity: "Useful",
@@ -56,6 +67,7 @@ export const resources: Resource[] = [
   {
     id: "clay",
     name: "Blue-Orange Clay",
+    origin: "Cindara Dunes",
     amount: 32,
     value: 7,
     rarity: "Rare",
@@ -66,6 +78,7 @@ export const resources: Resource[] = [
   {
     id: "mineral",
     name: "Star Iron",
+    origin: "Lunara Quarry",
     amount: 18,
     value: 9,
     rarity: "Rare",
@@ -76,6 +89,7 @@ export const resources: Resource[] = [
   {
     id: "gas",
     name: "Sky Gas",
+    origin: "Cloudmere Stormbelt",
     amount: 12,
     value: 12,
     rarity: "Legendary",
@@ -83,14 +97,40 @@ export const resources: Resource[] = [
     description: "Light gas that powers floating platforms and air travel.",
     uses: ["airships", "floating cities", "weather engines", "planet gates"],
   },
+  {
+    id: "brick",
+    name: "Brick",
+    origin: "Auralis Reach",
+    amount: 72,
+    value: 4,
+    rarity: "Common",
+    color: "#bf5942",
+    description: "Reliable city-building blocks made from fired local clay.",
+    uses: ["houses", "shops", "roads", "town centers"],
+  },
+  {
+    id: "cactus",
+    name: "Cactus Fiber",
+    origin: "Cindara Dunes",
+    amount: 40,
+    value: 4,
+    rarity: "Common",
+    color: "#4fa35d",
+    description: "Tough desert plant material used for gardens and survival tools.",
+    uses: ["desert farms", "park plants", "fences", "cloth"],
+  },
 ];
 
 export const buildBlocks: BuildBlock[] = [
-  { id: "waterway", label: "Canal", resourceId: "water", color: "#3d8ce8" },
-  { id: "forestHome", label: "Prism Home", resourceId: "wood", color: "#58bd86" },
-  { id: "slide", label: "Slide Tower", resourceId: "clay", color: "#ff7a36" },
-  { id: "dock", label: "Star Dock", resourceId: "mineral", color: "#aeb8c9" },
-  { id: "lift", label: "Sky Lift", resourceId: "gas", color: "#d2f25d" },
+  { id: "waterway", label: "Water", resourceId: "water", origin: "Auralis Reach", category: "terrain", color: "#3d8ce8" },
+  { id: "woodBlock", label: "Wood", resourceId: "wood", origin: "Viretta Canopy", category: "building", color: "#8a5a31" },
+  { id: "brickBlock", label: "Brick", resourceId: "brick", origin: "Auralis Reach", category: "building", color: "#bf5942" },
+  { id: "cactus", label: "Cactus", resourceId: "cactus", origin: "Cindara Dunes", category: "plant", color: "#4fa35d" },
+  { id: "pine", label: "Tree", resourceId: "wood", origin: "Viretta Canopy", category: "plant", color: "#3f9f6b" },
+  { id: "forestHome", label: "Prism Home", resourceId: "wood", origin: "Viretta Canopy", category: "building", color: "#58bd86" },
+  { id: "slide", label: "Slide Tower", resourceId: "clay", origin: "Cindara Dunes", category: "special", color: "#ff7a36" },
+  { id: "dock", label: "Star Dock", resourceId: "mineral", origin: "Lunara Quarry", category: "special", color: "#aeb8c9" },
+  { id: "lift", label: "Sky Lift", resourceId: "gas", origin: "Cloudmere Stormbelt", category: "special", color: "#d2f25d" },
 ];
 
 export const tradeOffers: TradeOffer[] = [
@@ -113,6 +153,13 @@ export const tradeOffers: TradeOffer[] = [
     from: "Viretta Canopy",
     wants: "Sky Gas",
     gives: "Prismwood",
+    status: "Open",
+  },
+  {
+    id: "trade-4",
+    from: "Lunara Quarry",
+    wants: "Prismwood",
+    gives: "Star Iron",
     status: "Open",
   },
 ];

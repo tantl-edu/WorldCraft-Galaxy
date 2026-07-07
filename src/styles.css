@@ -73,6 +73,7 @@ button {
 .swap-button,
 .planet-badge,
 .block-button,
+.tool-button,
 .icon-button,
 .accept-button,
 .accepted-button {
@@ -110,7 +111,7 @@ button {
   right: 18px;
   bottom: 18px;
   display: grid;
-  grid-template-columns: repeat(5, minmax(92px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: 10px;
   padding: 10px;
   border: 1px solid var(--line);
@@ -129,9 +130,42 @@ button {
   white-space: nowrap;
 }
 
+.tool-button {
+  padding: 9px 12px;
+  color: #10141d;
+  background: #8ee6bc;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.tool-button.danger {
+  color: #fff5f5;
+  background: #a43f3f;
+}
+
 .block-button.selected {
   border-color: rgba(255, 184, 77, 0.8);
   background: rgba(255, 184, 77, 0.18);
+}
+
+.tool-button.selected {
+  outline: 2px solid rgba(255, 255, 255, 0.82);
+  outline-offset: 2px;
+}
+
+.block-button span:last-child {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  text-align: left;
+}
+
+.block-button small {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .block-swatch {
@@ -196,6 +230,10 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
+}
+
+.avatar-row {
+  margin-top: 10px;
 }
 
 .score-grid {
@@ -376,9 +414,12 @@ h2 {
 
   .build-toolbar {
     grid-template-columns: repeat(2, 1fr);
+    max-height: 46vh;
+    overflow: auto;
   }
 
-  .block-button {
+  .block-button,
+  .tool-button {
     justify-content: flex-start;
   }
 
