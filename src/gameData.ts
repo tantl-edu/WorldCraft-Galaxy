@@ -22,7 +22,17 @@ export type BuildBlock = {
 export type PlacedBlock = BuildBlock & {
   instanceId: string;
   x: number;
+  y: number;
   z: number;
+};
+
+export type WorldRegion = {
+  name: string;
+  biome: string;
+  xMin: number;
+  xMax: number;
+  zMin: number;
+  zMax: number;
 };
 
 export type TradeOffer = {
@@ -38,8 +48,22 @@ export const starterPlanet = {
   system: "Velora System",
   privacy: "Private build, visitors read-only",
   description:
-    "A wide starter world with rivers, forests, desert, and mountains. Build towns anywhere on the terrain and trade for blocks from other planets.",
+    "A large starter world with named regions, rivers, forests, desert, and mountains. Move your avatar, build upward, and trade for blocks from other planets.",
 };
+
+export const worldRegions: WorldRegion[] = [
+  { name: "Auralis Meadowlands", biome: "grass country", xMin: -30, xMax: 0, zMin: -30, zMax: 0 },
+  { name: "Viretta Forest Belt", biome: "forest country", xMin: -30, xMax: 0, zMin: 0, zMax: 30 },
+  { name: "Cindara Dunes", biome: "desert country", xMin: 0, xMax: 30, zMin: -30, zMax: 0 },
+  { name: "Lunara Highlands", biome: "mountain country", xMin: 0, xMax: 30, zMin: 0, zMax: 30 },
+];
+
+export function getWorldRegion(x: number, z: number) {
+  return (
+    worldRegions.find((region) => x >= region.xMin && x < region.xMax && z >= region.zMin && z < region.zMax) ??
+    worldRegions[0]
+  );
+}
 
 export const resources: Resource[] = [
   {
@@ -119,12 +143,25 @@ export const resources: Resource[] = [
     description: "Tough desert plant material used for gardens and survival tools.",
     uses: ["desert farms", "park plants", "fences", "cloth"],
   },
+  {
+    id: "glow",
+    name: "Glow Crystal",
+    origin: "Lunara Highlands",
+    amount: 24,
+    value: 8,
+    rarity: "Rare",
+    color: "#79f7d3",
+    description: "Bright crystal for signs, paths, night cities, and portal markers.",
+    uses: ["street lights", "portal gates", "glowing roads", "city signs"],
+  },
 ];
 
 export const buildBlocks: BuildBlock[] = [
   { id: "waterway", label: "Water", resourceId: "water", origin: "Auralis Reach", category: "terrain", color: "#3d8ce8" },
   { id: "woodBlock", label: "Wood", resourceId: "wood", origin: "Viretta Canopy", category: "building", color: "#8a5a31" },
   { id: "brickBlock", label: "Brick", resourceId: "brick", origin: "Auralis Reach", category: "building", color: "#bf5942" },
+  { id: "glassBlock", label: "Glass", resourceId: "glow", origin: "Lunara Highlands", category: "building", color: "#79d9f7" },
+  { id: "glowPath", label: "Glow Path", resourceId: "glow", origin: "Lunara Highlands", category: "terrain", color: "#79f7d3" },
   { id: "cactus", label: "Cactus", resourceId: "cactus", origin: "Cindara Dunes", category: "plant", color: "#4fa35d" },
   { id: "pine", label: "Tree", resourceId: "wood", origin: "Viretta Canopy", category: "plant", color: "#3f9f6b" },
   { id: "forestHome", label: "Prism Home", resourceId: "wood", origin: "Viretta Canopy", category: "building", color: "#58bd86" },

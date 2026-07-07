@@ -3,6 +3,8 @@ import * as THREE from "three";
 import type { BuildBlock, PlacedBlock } from "./gameData";
 
 type PlanetSceneProps = {
+  avatarPosition: { x: number; z: number };
+  cameraMode: "overhead" | "avatar";
   nickname: string;
   selectedBlock: BuildBlock;
   toolMode: "build" | "delete";
@@ -11,10 +13,12 @@ type PlanetSceneProps = {
   onDeleteBlock: (instanceId: string) => void;
 };
 
-const WORLD_SIZE = 28;
+const WORLD_SIZE = 60;
 const HALF_WORLD = WORLD_SIZE / 2;
 
 export function PlanetScene({
+  avatarPosition,
+  cameraMode,
   nickname,
   selectedBlock,
   toolMode,
@@ -42,9 +46,7 @@ export function PlanetScene({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#10141d");
 
-    const camera = new THREE.PerspectiveCamera(42, host.clientWidth / host.clientHeight, 0.1, 120);
-    camera.position.set(19, 18, 20);
-    camera.lookAt(0, 0, 0);
+    const camera = new THREE.PerspectiveCamera(42, host.clientWidth / host.clientHeight, 0.1, 160);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -64,15 +66,12 @@ export function PlanetScene({
     const world = new THREE.Group();
     scene.add(world);
 
-    const ground = new THREE.Mesh(
-      new THREE.BoxGeometry(WORLD_SIZE, 0.35, WORLD_SIZE),
-      new THREE.MeshStandardMaterial({ color: "#395f3c", roughness: 0.86 }),
-    );
+    const ground = new THREE.Mesh(new THREE.BoxGeometry(WORLD_SIZE, 0.35, WORLD_SIZE), createTerrainMaterial());
     ground.position.y = -0.2;
     ground.receiveShadow = true;
     world.add(ground);
 
-    const grid = new THREE.GridHelper(WORLD_SIZE, WORLD_SIZE, "#6e8765", "#486546");
+    const grid = new THREE.GridHelper(WORLD_SIZE, WORLD_SIZE, "#78906e", "#486546");
     grid.position.y = 0.01;
     world.add(grid);
 
@@ -83,8 +82,17 @@ export function PlanetScene({
     world.add(blockGroup);
 
     const avatar = createAvatar(nickname);
-    avatar.position.set(-10, 0.08, 8);
+    avatar.position.set(avatarPosition.x, 0.08, avatarPosition.z);
+    avatar.visible = cameraMode !== "avatar";
     world.add(avatar);
+
+    if (cameraMode === "avatar") {
+      camera.position.set(avatarPosition.x, 1.55, avatarPosition.z + 0.2);
+      camera.lookAt(avatarPosition.x, 1.45, avatarPosition.z - 8);
+    } else {
+      camera.position.set(42, 34, 42);
+      camera.lookAt(0, 0, 0);
+    }
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -95,7 +103,7 @@ export function PlanetScene({
     };
     refreshBlocks();
 
-    const snapToGrid = (value: number) => Math.max(-HALF_WORLD + 0.5, Math.min(HALF_WORLD - 0.5, Math.round(value)));
+    const snapToGrid = (value: number) => Math.max(-HALF_WORLD + 1, Math.min(HALF_WORLD - 1, Math.round(value)));
 
     const handlePointerDown = (event: PointerEvent) => {
       const bounds = renderer.domElement.getBoundingClientRect();
@@ -140,7 +148,7 @@ export function PlanetScene({
       renderer.dispose();
       host.removeChild(renderer.domElement);
     };
-  }, [nickname, placedBlocks]);
+  }, [avatarPosition, cameraMode, nickname, placedBlocks]);
 
   return <div className="planet-scene" ref={hostRef} aria-label="Large block-building terrain scene" />;
 }
@@ -149,12 +157,12 @@ function addRiver(world: THREE.Group) {
   const riverMaterial = new THREE.MeshStandardMaterial({ color: "#2f86d7", roughness: 0.35, metalness: 0.08 });
   const river = new THREE.Group();
   [
-    [-8, 0.03, -10, 4.8, 0.08, 2.1],
-    [-5, 0.04, -6, 5.2, 0.08, 2],
-    [-2, 0.05, -2.2, 5.8, 0.08, 1.85],
-    [1.8, 0.06, 1.1, 6, 0.08, 1.8],
-    [5.7, 0.07, 4.6, 5, 0.08, 1.7],
-    [9, 0.08, 8.2, 4.2, 0.08, 1.6],
+    [-18, 0.03, -24, 9, 0.08, 2.5],
+    [-13, 0.04, -16, 10, 0.08, 2.4],
+    [-7, 0.05, -8, 11, 0.08, 2.3],
+    [0, 0.06, 0, 11, 0.08, 2.2],
+    [8, 0.07, 8, 10, 0.08, 2.1],
+    [16, 0.08, 17, 9, 0.08, 2],
   ].forEach(([x, y, z, width, height, depth]) => {
     const segment = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), riverMaterial);
     segment.position.set(x, y, z);
@@ -171,9 +179,10 @@ function addTerrainDetails(world: THREE.Group) {
   const forestMaterial = new THREE.MeshStandardMaterial({ color: "#286f44", roughness: 0.82 });
 
   [
-    [9, -8, 2.5],
-    [11, -5, 1.9],
-    [7, -5, 1.6],
+    [18, 12, 5.5],
+    [23, 17, 4.6],
+    [13, 19, 3.8],
+    [20, 24, 3.2],
   ].forEach(([x, z, height]) => {
     const mountain = new THREE.Mesh(new THREE.ConeGeometry(1.45, height, 4), mountainMaterial);
     mountain.position.set(x, height / 2, z);
@@ -187,28 +196,36 @@ function addTerrainDetails(world: THREE.Group) {
     world.add(cap);
   });
 
-  const desert = new THREE.Mesh(new THREE.BoxGeometry(7, 0.09, 6), sandMaterial);
-  desert.position.set(8.6, 0.02, -6);
+  const desert = new THREE.Mesh(new THREE.BoxGeometry(25, 0.09, 25), sandMaterial);
+  desert.position.set(15, 0.02, -16);
   desert.receiveShadow = true;
   world.add(desert);
 
   [
-    [-10, 6],
-    [-8, 7],
-    [-6, 6],
-    [-9, 4],
-    [-5, 4.7],
+    [-22, 9],
+    [-19, 16],
+    [-15, 22],
+    [-11, 13],
+    [-7, 20],
+    [-24, 24],
+    [-4, 9],
   ].forEach(([x, z]) => {
     const tree = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.8, 6), forestMaterial);
     tree.position.set(x, 0.9, z);
     tree.castShadow = true;
     world.add(tree);
   });
+
+  const meadowMaterial = new THREE.MeshStandardMaterial({ color: "#4f7a43", roughness: 0.9 });
+  const meadow = new THREE.Mesh(new THREE.BoxGeometry(24, 0.08, 22), meadowMaterial);
+  meadow.position.set(-16, 0.025, -16);
+  meadow.receiveShadow = true;
+  world.add(meadow);
 }
 
 function createBlockMesh(block: PlacedBlock) {
   const group = new THREE.Group();
-  group.position.set(block.x, 0.08, block.z);
+  group.position.set(block.x, 0.08 + block.y * 0.9, block.z);
   group.userData.instanceId = block.instanceId;
 
   const material = new THREE.MeshStandardMaterial({ color: block.color, roughness: 0.55, metalness: 0.1 });
@@ -285,11 +302,33 @@ function createBlockMesh(block: PlacedBlock) {
     return group;
   }
 
-  const height = block.id === "brickBlock" ? 0.72 : 0.62;
+  const height = block.id === "brickBlock" || block.id === "glassBlock" || block.id === "woodBlock" ? 0.9 : 0.62;
   const cube = mark(new THREE.Mesh(new THREE.BoxGeometry(0.9, height, 0.9), material));
   cube.position.y = height / 2;
   group.add(cube);
   return group;
+}
+
+function createTerrainMaterial() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const context = canvas.getContext("2d");
+  if (context) {
+    context.fillStyle = "#3f6840";
+    context.fillRect(0, 0, 512, 512);
+    context.fillStyle = "#4f7a43";
+    context.fillRect(0, 0, 256, 256);
+    context.fillStyle = "#2f6a46";
+    context.fillRect(0, 256, 256, 256);
+    context.fillStyle = "#caa766";
+    context.fillRect(256, 0, 256, 256);
+    context.fillStyle = "#6f7779";
+    context.fillRect(256, 256, 256, 256);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.88 });
 }
 
 function createAvatar(nickname: string) {

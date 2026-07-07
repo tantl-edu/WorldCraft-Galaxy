@@ -1,26 +1,54 @@
-import { Boxes, Check, Eye, Globe2, Hammer, Lock, Rocket, Shuffle, Sparkles, Trash2, UserRound } from "lucide-react";
-import { useMemo, useState } from "react";
-import { buildBlocks, resources, starterPlanet, tradeOffers, type BuildBlock, type PlacedBlock } from "./gameData";
+import {
+  Boxes,
+  Camera,
+  Check,
+  Eye,
+  Globe2,
+  Hammer,
+  Lock,
+  Map,
+  Rocket,
+  Shuffle,
+  Sparkles,
+  Trash2,
+  UserRound,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  buildBlocks,
+  getWorldRegion,
+  resources,
+  starterPlanet,
+  tradeOffers,
+  type BuildBlock,
+  type PlacedBlock,
+} from "./gameData";
 import { PlanetScene } from "./PlanetScene";
 
 type ToolMode = "build" | "delete";
+type CameraMode = "overhead" | "avatar";
+type AvatarPosition = { x: number; z: number };
 
 const starterBuilds: PlacedBlock[] = [
-  { ...buildBlocks[5], instanceId: "home-1", x: -6, z: -4 },
-  { ...buildBlocks[2], instanceId: "brick-1", x: -4, z: -4 },
-  { ...buildBlocks[6], instanceId: "slide-1", x: 2, z: -3 },
-  { ...buildBlocks[8], instanceId: "lift-1", x: 5, z: 2 },
-  { ...buildBlocks[4], instanceId: "tree-1", x: -7, z: 3 },
-  { ...buildBlocks[3], instanceId: "cactus-1", x: 7, z: -5 },
+  { ...buildBlocks[7], instanceId: "home-1", x: -12, y: 0, z: -8 },
+  { ...buildBlocks[2], instanceId: "brick-1", x: -10, y: 0, z: -8 },
+  { ...buildBlocks[2], instanceId: "brick-2", x: -10, y: 1, z: -8 },
+  { ...buildBlocks[8], instanceId: "slide-1", x: 4, y: 0, z: -9 },
+  { ...buildBlocks[10], instanceId: "lift-1", x: 12, y: 0, z: 8 },
+  { ...buildBlocks[6], instanceId: "tree-1", x: -16, y: 0, z: 10 },
+  { ...buildBlocks[5], instanceId: "cactus-1", x: 15, y: 0, z: -13 },
 ];
 
 export function App() {
-  const [selectedBlockId, setSelectedBlockId] = useState(buildBlocks[6].id);
+  const [selectedBlockId, setSelectedBlockId] = useState(buildBlocks[8].id);
   const [toolMode, setToolMode] = useState<ToolMode>("build");
+  const [cameraMode, setCameraMode] = useState<CameraMode>("overhead");
   const [placedBlocks, setPlacedBlocks] = useState<PlacedBlock[]>(starterBuilds);
   const [tradeOpen, setTradeOpen] = useState(false);
   const [acceptedTrades, setAcceptedTrades] = useState<string[]>([]);
-  const [nickname] = useState("SkyBuilder");
+  const [nickname, setNickname] = useState("SkyBuilder");
+  const [draftNickname, setDraftNickname] = useState("SkyBuilder");
+  const [avatarPosition, setAvatarPosition] = useState<AvatarPosition>({ x: -18, z: 14 });
 
   const selectedBlock = useMemo(
     () => buildBlocks.find((block) => block.id === selectedBlockId) ?? buildBlocks[0],
@@ -28,17 +56,49 @@ export function App() {
   );
 
   const selectedResource = resources.find((resource) => resource.id === selectedBlock.resourceId);
+  const currentRegion = getWorldRegion(avatarPosition.x, avatarPosition.z);
   const buildScore = placedBlocks.length * 12 + acceptedTrades.length * 18;
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement) return;
+      const moves: Record<string, AvatarPosition> = {
+        ArrowUp: { x: 0, z: -1 },
+        ArrowDown: { x: 0, z: 1 },
+        ArrowLeft: { x: -1, z: 0 },
+        ArrowRight: { x: 1, z: 0 },
+      };
+      const move = moves[event.key];
+      if (!move) return;
+      event.preventDefault();
+      setAvatarPosition((current) => ({
+        x: Math.max(-28, Math.min(28, current.x + move.x)),
+        z: Math.max(-28, Math.min(28, current.z + move.z)),
+      }));
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const placeBlock = (block: BuildBlock, x: number, z: number) => {
-    setPlacedBlocks((current) => [
-      ...current.filter((placed) => placed.x !== x || placed.z !== z),
-      { ...block, instanceId: `${block.id}-${Date.now()}-${x}-${z}`, x, z },
-    ]);
+    setPlacedBlocks((current) => {
+      const stack = current.filter((placed) => placed.x === x && placed.z === z);
+      const shouldStack = block.category === "building";
+      const y = shouldStack ? Math.min(6, stack.reduce((highest, placed) => Math.max(highest, placed.y), -1) + 1) : 0;
+      const cleared = shouldStack ? current : current.filter((placed) => placed.x !== x || placed.z !== z);
+      return [...cleared, { ...block, instanceId: `${block.id}-${Date.now()}-${x}-${y}-${z}`, x, y, z }];
+    });
   };
 
   const deleteBlock = (instanceId: string) => {
     setPlacedBlocks((current) => current.filter((placed) => placed.instanceId !== instanceId));
+  };
+
+  const saveNickname = () => {
+    const cleaned = draftNickname.replace(/[^a-zA-Z0-9 _-]/g, "").trim().slice(0, 16);
+    setNickname(cleaned || "SkyBuilder");
+    setDraftNickname(cleaned || "SkyBuilder");
   };
 
   return (
@@ -57,6 +117,8 @@ export function App() {
         </div>
 
         <PlanetScene
+          avatarPosition={avatarPosition}
+          cameraMode={cameraMode}
           nickname={nickname}
           selectedBlock={selectedBlock}
           toolMode={toolMode}
@@ -81,6 +143,22 @@ export function App() {
           >
             <Trash2 size={18} />
             <span>Delete</span>
+          </button>
+          <button
+            className={cameraMode === "overhead" ? "tool-button selected" : "tool-button"}
+            type="button"
+            onClick={() => setCameraMode("overhead")}
+          >
+            <Map size={18} />
+            <span>Top View</span>
+          </button>
+          <button
+            className={cameraMode === "avatar" ? "tool-button selected" : "tool-button"}
+            type="button"
+            onClick={() => setCameraMode("avatar")}
+          >
+            <Camera size={18} />
+            <span>Avatar View</span>
           </button>
           {buildBlocks.map((block) => (
             <button
@@ -117,9 +195,34 @@ export function App() {
 
         <div className="privacy-row avatar-row">
           <UserRound size={16} />
-          <span>
-            Avatar: <strong>{nickname}</strong>. Game nicknames only, no real names or personal info.
-          </span>
+          <div className="avatar-editor">
+            <label htmlFor="nickname">Avatar nickname</label>
+            <div>
+              <input
+                id="nickname"
+                maxLength={16}
+                value={draftNickname}
+                onChange={(event) => setDraftNickname(event.target.value)}
+                onBlur={saveNickname}
+                aria-describedby="nickname-note"
+              />
+              <button type="button" onClick={saveNickname}>
+                Save
+              </button>
+            </div>
+            <span id="nickname-note">Game nicknames only, no real names or personal info.</span>
+          </div>
+        </div>
+
+        <div className="location-card">
+          <Globe2 size={18} />
+          <div>
+            <span>Current world</span>
+            <strong>{starterPlanet.name}</strong>
+            <span>
+              {currentRegion.name} - {currentRegion.biome}
+            </span>
+          </div>
         </div>
 
         <div className="score-grid">

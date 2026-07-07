@@ -236,6 +236,66 @@ h2 {
   margin-top: 10px;
 }
 
+.avatar-editor {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.avatar-editor label,
+.avatar-editor span,
+.location-card span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.avatar-editor div {
+  display: flex;
+  gap: 8px;
+}
+
+.avatar-editor input {
+  min-width: 0;
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  color: #f5f7fb;
+  background: rgba(255, 255, 255, 0.08);
+  font: inherit;
+}
+
+.avatar-editor button {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #10141d;
+  background: var(--accent);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.location-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(142, 230, 188, 0.32);
+  border-radius: 8px;
+  background: rgba(142, 230, 188, 0.08);
+}
+
+.location-card div {
+  display: grid;
+  gap: 2px;
+}
+
+.location-card strong {
+  font-size: 1.04rem;
+}
+
 .score-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
