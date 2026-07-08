@@ -30,10 +30,8 @@ export type PlacedBlock = BuildBlock & {
 export type WorldRegion = {
   name: string;
   biome: string;
-  xMin: number;
-  xMax: number;
-  zMin: number;
-  zMax: number;
+  center: { x: number; z: number };
+  radius: number;
 };
 
 export type TradeOffer = {
@@ -50,21 +48,24 @@ export const starterPlanet = {
   system: "Velora System",
   privacy: "Private build, visitors read-only",
   description:
-    "A large starter world with named regions, rivers, forests, desert, and mountains. Move your avatar, build upward, and trade for blocks from other planets.",
+    "A large starter world with natural rivers, forests, desert, ocean edges, and mountains. Move your avatar, build upward, and trade for blocks from other planets.",
 };
 
 export const worldRegions: WorldRegion[] = [
-  { name: "Auralis Meadowlands", biome: "grass country", xMin: -30, xMax: 0, zMin: -30, zMax: 0 },
-  { name: "Viretta Forest Belt", biome: "forest country", xMin: -30, xMax: 0, zMin: 0, zMax: 30 },
-  { name: "Cindara Dunes", biome: "desert country", xMin: 0, xMax: 30, zMin: -30, zMax: 0 },
-  { name: "Lunara Highlands", biome: "mountain country", xMin: 0, xMax: 30, zMin: 0, zMax: 30 },
+  { name: "Auralis Lake Country", biome: "hills, lake, river, and starter fields", center: { x: -18, z: -14 }, radius: 16 },
+  { name: "Rainforest Falls", biome: "dense trees, vines, flowers, birds, and falling water", center: { x: -18, z: 16 }, radius: 18 },
+  { name: "Deadly Desert", biome: "sun-baked dunes, cactus groves, shells, and scorpion trails", center: { x: 16, z: -15 }, radius: 18 },
+  { name: "Mystical Mountains", biome: "volcano ridges, quartz caves, diamonds, lava, and waterfalls", center: { x: 18, z: 18 }, radius: 18 },
+  { name: "Optical Ocean", biome: "clear water, kelp beds, coral, fish, sand, and shells", center: { x: -3, z: -24 }, radius: 13 },
+  { name: "Earth Moon", biome: "icy rock, star dust, craters, snow, and moon hills", center: { x: 5, z: 27 }, radius: 11 },
 ];
 
 export function getWorldRegion(x: number, z: number) {
-  return (
-    worldRegions.find((region) => x >= region.xMin && x < region.xMax && z >= region.zMin && z < region.zMax) ??
-    worldRegions[0]
-  );
+  return worldRegions.reduce((closest, region) => {
+    const closestDistance = Math.hypot(x - closest.center.x, z - closest.center.z) / closest.radius;
+    const regionDistance = Math.hypot(x - region.center.x, z - region.center.z) / region.radius;
+    return regionDistance < closestDistance ? region : closest;
+  }, worldRegions[0]);
 }
 
 export const resources: Resource[] = [
@@ -200,6 +201,127 @@ export const resources: Resource[] = [
     description: "Bright crystal for signs, paths, night cities, and portal markers.",
     uses: ["street lights", "portal gates", "glowing roads", "city signs"],
   },
+  {
+    id: "shells",
+    name: "Shells",
+    origin: "Optical Ocean",
+    amount: 54,
+    value: 4,
+    rarity: "Useful",
+    color: "#f6d8b8",
+    description: "Curved ocean shells for beach paths, roofs, and decorative walls.",
+    uses: ["beach towns", "roof tiles", "mosaics", "fountains"],
+  },
+  {
+    id: "kelp",
+    name: "Kelp",
+    origin: "Optical Ocean",
+    amount: 42,
+    value: 4,
+    rarity: "Useful",
+    color: "#2f8b61",
+    description: "Flexible ocean plant material for underwater builds and farms.",
+    uses: ["aquariums", "water gardens", "sea farms", "green roofs"],
+  },
+  {
+    id: "coral",
+    name: "Coral",
+    origin: "Optical Ocean",
+    amount: 24,
+    value: 8,
+    rarity: "Rare",
+    color: "#ff6f87",
+    description: "Bright coral blocks used for colorful ocean cities and reef parks.",
+    uses: ["reef parks", "aquariums", "color walls", "ocean towers"],
+  },
+  {
+    id: "vines",
+    name: "Vines",
+    origin: "Rainforest Falls",
+    amount: 48,
+    value: 5,
+    rarity: "Useful",
+    color: "#2f9f50",
+    description: "Climbing vines from wet rainforest cliffs.",
+    uses: ["treehouses", "hanging bridges", "green walls", "jungle paths"],
+  },
+  {
+    id: "flowers",
+    name: "Flowers",
+    origin: "Rainforest Falls",
+    amount: 64,
+    value: 3,
+    rarity: "Common",
+    color: "#ff79c6",
+    description: "Bright rainforest flowers for gardens and village plazas.",
+    uses: ["gardens", "parks", "plazas", "color patterns"],
+  },
+  {
+    id: "quartz",
+    name: "Quartz",
+    origin: "Mystical Mountains",
+    amount: 30,
+    value: 7,
+    rarity: "Rare",
+    color: "#f1ecff",
+    description: "Pale crystal from mountain caves that makes clean, bright buildings.",
+    uses: ["temples", "bridges", "windows", "mountain towers"],
+  },
+  {
+    id: "diamond",
+    name: "Diamonds",
+    origin: "Mystical Mountains",
+    amount: 14,
+    value: 13,
+    rarity: "Legendary",
+    color: "#7ef4ff",
+    description: "Rare cave gems that power advanced galaxy builds.",
+    uses: ["power cores", "beacons", "space gates", "rare decorations"],
+  },
+  {
+    id: "lava",
+    name: "Lava",
+    origin: "Mystical Mountains",
+    amount: 20,
+    value: 9,
+    rarity: "Rare",
+    color: "#ff5a22",
+    description: "Hot volcanic material for dramatic terrain and energy builds.",
+    uses: ["volcanoes", "forge rooms", "energy canals", "warning lights"],
+  },
+  {
+    id: "stardust",
+    name: "Star Dust",
+    origin: "Earth Moon",
+    amount: 18,
+    value: 10,
+    rarity: "Legendary",
+    color: "#c7c7ff",
+    description: "Shimmering moon powder for galaxy travel and glowing builds.",
+    uses: ["moon roads", "rocket pads", "portal frames", "space parks"],
+  },
+  {
+    id: "ice",
+    name: "Ice",
+    origin: "Earth Moon",
+    amount: 46,
+    value: 5,
+    rarity: "Useful",
+    color: "#bfefff",
+    description: "Cold moon ice used for skating areas, cooling systems, and bright roofs.",
+    uses: ["ice paths", "snow towns", "coolers", "winter parks"],
+  },
+  {
+    id: "snow",
+    name: "Snow",
+    origin: "Earth Moon",
+    amount: 58,
+    value: 3,
+    rarity: "Common",
+    color: "#eef8ff",
+    description: "Soft snow for mountain caps, winter terrain, and moon villages.",
+    uses: ["snow fields", "mountain caps", "winter parks", "soft roofs"],
+  },
 ];
 
 export const buildBlocks: BuildBlock[] = [
@@ -217,6 +339,17 @@ export const buildBlocks: BuildBlock[] = [
   { id: "slide", label: "Slide Tower", resourceId: "clay", origin: "Cindara Dunes", category: "special", unlock: "trade", color: "#ff7a36" },
   { id: "dock", label: "Star Dock", resourceId: "mineral", origin: "Lunara Quarry", category: "special", unlock: "trade", color: "#aeb8c9" },
   { id: "lift", label: "Sky Lift", resourceId: "gas", origin: "Cloudmere Stormbelt", category: "special", unlock: "trade", color: "#d2f25d" },
+  { id: "shellBlock", label: "Shell", resourceId: "shells", origin: "Optical Ocean", category: "building", unlock: "trade", color: "#f6d8b8" },
+  { id: "kelpPatch", label: "Kelp", resourceId: "kelp", origin: "Optical Ocean", category: "plant", unlock: "trade", color: "#2f8b61" },
+  { id: "coralBlock", label: "Coral", resourceId: "coral", origin: "Optical Ocean", category: "building", unlock: "trade", color: "#ff6f87" },
+  { id: "vineWall", label: "Vines", resourceId: "vines", origin: "Rainforest Falls", category: "plant", unlock: "trade", color: "#2f9f50" },
+  { id: "flowerPatch", label: "Flowers", resourceId: "flowers", origin: "Rainforest Falls", category: "plant", unlock: "trade", color: "#ff79c6" },
+  { id: "quartzBlock", label: "Quartz", resourceId: "quartz", origin: "Mystical Mountains", category: "building", unlock: "trade", color: "#f1ecff" },
+  { id: "diamondBeacon", label: "Diamond", resourceId: "diamond", origin: "Mystical Mountains", category: "special", unlock: "trade", color: "#7ef4ff" },
+  { id: "lavaFlow", label: "Lava", resourceId: "lava", origin: "Mystical Mountains", category: "terrain", unlock: "trade", color: "#ff5a22" },
+  { id: "starDust", label: "Star Dust", resourceId: "stardust", origin: "Earth Moon", category: "special", unlock: "trade", color: "#c7c7ff" },
+  { id: "iceBlock", label: "Ice", resourceId: "ice", origin: "Earth Moon", category: "building", unlock: "trade", color: "#bfefff" },
+  { id: "snowBlock", label: "Snow", resourceId: "snow", origin: "Earth Moon", category: "terrain", unlock: "trade", color: "#eef8ff" },
 ];
 
 export const tradeOffers: TradeOffer[] = [
@@ -250,6 +383,38 @@ export const tradeOffers: TradeOffer[] = [
     wants: "Prismwood",
     gives: "Star Iron",
     unlockOrigin: "Lunara Highlands",
+    status: "Open",
+  },
+  {
+    id: "trade-5",
+    from: "Optical Ocean Reef",
+    wants: "Stone",
+    gives: "Shells, Kelp, and Coral",
+    unlockOrigin: "Optical Ocean",
+    status: "Open",
+  },
+  {
+    id: "trade-6",
+    from: "Rainforest Falls Canopy",
+    wants: "Brick",
+    gives: "Vines and Flowers",
+    unlockOrigin: "Rainforest Falls",
+    status: "Open",
+  },
+  {
+    id: "trade-7",
+    from: "Mystical Mountain Cave",
+    wants: "Water",
+    gives: "Quartz, Diamonds, and Lava",
+    unlockOrigin: "Mystical Mountains",
+    status: "Pending",
+  },
+  {
+    id: "trade-8",
+    from: "Earth Moon Base",
+    wants: "Timber",
+    gives: "Star Dust, Ice, and Snow",
+    unlockOrigin: "Earth Moon",
     status: "Open",
   },
 ];

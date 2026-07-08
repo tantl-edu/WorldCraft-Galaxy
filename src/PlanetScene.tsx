@@ -77,7 +77,7 @@ export function PlanetScene({
     const gridMaterials = Array.isArray(grid.material) ? grid.material : [grid.material];
     gridMaterials.forEach((material) => {
       material.transparent = true;
-      material.opacity = 0.22;
+      material.opacity = 0.1;
     });
     world.add(grid);
 
@@ -223,6 +223,11 @@ function addRiver(world: THREE.Group) {
     river.add(segment);
   });
   world.add(river);
+
+  const falls = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.7, 0.26), riverMaterial);
+  falls.position.set(16, 1.25, 13.4);
+  falls.rotation.z = 0.12;
+  world.add(falls);
 }
 
 function addLake(world: THREE.Group) {
@@ -246,6 +251,7 @@ function addTerrainDetails(world: THREE.Group) {
   const snowMaterial = new THREE.MeshStandardMaterial({ color: "#dfe8ef", roughness: 0.65 });
   const sandMaterial = new THREE.MeshStandardMaterial({ color: "#caa766", roughness: 0.95 });
   const forestMaterial = new THREE.MeshStandardMaterial({ color: "#286f44", roughness: 0.82 });
+  const lavaMaterial = new THREE.MeshStandardMaterial({ color: "#ff5a22", emissive: "#8f2108", emissiveIntensity: 0.45, roughness: 0.62 });
 
   [
     [18, 12, 5.5],
@@ -277,10 +283,31 @@ function addTerrainDetails(world: THREE.Group) {
     world.add(hill);
   });
 
-  const desert = new THREE.Mesh(new THREE.BoxGeometry(25, 0.09, 25), sandMaterial);
-  desert.position.set(15, 0.02, -16);
+  const desert = new THREE.Mesh(new THREE.CircleGeometry(1, 72), sandMaterial);
+  desert.rotation.x = -Math.PI / 2;
+  desert.scale.set(14, 8.5, 1);
+  desert.position.set(16, 0.035, -15);
   desert.receiveShadow = true;
   world.add(desert);
+
+  const moonPatch = new THREE.Mesh(
+    new THREE.CircleGeometry(1, 56),
+    new THREE.MeshStandardMaterial({ color: "#b8bec4", roughness: 0.94 }),
+  );
+  moonPatch.rotation.x = -Math.PI / 2;
+  moonPatch.scale.set(7.5, 5, 1);
+  moonPatch.position.set(4, 0.04, 25);
+  world.add(moonPatch);
+
+  const lava = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.11, 8), lavaMaterial);
+  lava.position.set(20, 0.12, 17);
+  lava.rotation.y = -0.34;
+  world.add(lava);
+
+  const cave = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.22, 8, 20, Math.PI), new THREE.MeshStandardMaterial({ color: "#2b2d31", roughness: 0.9 }));
+  cave.position.set(15.6, 0.85, 15.2);
+  cave.rotation.set(0, 0, Math.PI);
+  world.add(cave);
 
   [
     [-22, 9],
@@ -305,11 +332,90 @@ function addTerrainDetails(world: THREE.Group) {
     world.add(tree);
   });
 
-  const meadowMaterial = new THREE.MeshStandardMaterial({ color: "#4f7a43", roughness: 0.9 });
-  const meadow = new THREE.Mesh(new THREE.BoxGeometry(24, 0.08, 22), meadowMaterial);
-  meadow.position.set(-16, 0.025, -16);
-  meadow.receiveShadow = true;
-  world.add(meadow);
+  addSketchFlourishes(world);
+}
+
+function addSketchFlourishes(world: THREE.Group) {
+  const cactusMaterial = new THREE.MeshStandardMaterial({ color: "#3f8f52", roughness: 0.86 });
+  const flowerMaterial = new THREE.MeshStandardMaterial({ color: "#ff79c6", roughness: 0.65 });
+  const coralMaterial = new THREE.MeshStandardMaterial({ color: "#ff6f87", roughness: 0.58 });
+  const kelpMaterial = new THREE.MeshStandardMaterial({ color: "#2f8b61", roughness: 0.78 });
+  const crystalMaterial = new THREE.MeshStandardMaterial({ color: "#f1ecff", roughness: 0.38, metalness: 0.08 });
+  const shellMaterial = new THREE.MeshStandardMaterial({ color: "#f6d8b8", roughness: 0.72 });
+
+  [
+    [13, -18],
+    [18, -12],
+    [22, -18],
+    [8, -10],
+  ].forEach(([x, z]) => {
+    const cactus = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.35, 0.35), cactusMaterial);
+    trunk.position.y = 0.68;
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.24, 0.24), cactusMaterial);
+    arm.position.set(0.32, 0.95, 0);
+    cactus.add(trunk, arm);
+    cactus.position.set(x, 0.05, z);
+    world.add(cactus);
+  });
+
+  [
+    [-24, 13],
+    [-20, 20],
+    [-17, 11],
+    [-11, 17],
+    [-7, 13],
+    [-23, 24],
+  ].forEach(([x, z], index) => {
+    const flower = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), flowerMaterial);
+    flower.position.set(x, 0.32, z);
+    flower.scale.set(1, 0.55, 1);
+    world.add(flower);
+
+    if (index % 2 === 0) {
+      const vine = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.6, 0.12), kelpMaterial);
+      vine.position.set(x + 0.7, 0.8, z - 0.4);
+      vine.rotation.z = 0.25;
+      world.add(vine);
+    }
+  });
+
+  [
+    [-24, -18],
+    [-21, -15],
+    [-16, -22],
+  ].forEach(([x, z]) => {
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 6, 0, Math.PI), shellMaterial);
+    shell.position.set(x, 0.18, z);
+    shell.scale.set(1, 0.35, 0.8);
+    world.add(shell);
+  });
+
+  [
+    [-12, -21],
+    [-9, -18],
+    [-6, -23],
+  ].forEach(([x, z]) => {
+    const kelp = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.2, 5), kelpMaterial);
+    kelp.position.set(x, 0.62, z);
+    kelp.rotation.z = 0.18;
+    world.add(kelp);
+
+    const coral = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.72, 7), coralMaterial);
+    coral.position.set(x + 0.55, 0.38, z + 0.35);
+    world.add(coral);
+  });
+
+  [
+    [15, 19],
+    [21, 13],
+    [23, 21],
+  ].forEach(([x, z]) => {
+    const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.55), crystalMaterial);
+    crystal.position.set(x, 0.55, z);
+    crystal.castShadow = true;
+    world.add(crystal);
+  });
 }
 
 function createBlockMesh(block: PlacedBlock) {
@@ -347,6 +453,44 @@ function createBlockMesh(block: PlacedBlock) {
     const leaves = mark(new THREE.Mesh(new THREE.ConeGeometry(0.68, 1.3, 7), material));
     leaves.position.y = 1.2;
     group.add(trunk, leaves);
+    return group;
+  }
+
+  if (block.id === "kelpPatch" || block.id === "vineWall") {
+    const stemA = mark(new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 0.16), material));
+    stemA.position.set(-0.18, 0.58, 0);
+    stemA.rotation.z = 0.18;
+    const stemB = mark(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.95, 0.16), material));
+    stemB.position.set(0.18, 0.5, 0.05);
+    stemB.rotation.z = -0.18;
+    group.add(stemA, stemB);
+    return group;
+  }
+
+  if (block.id === "flowerPatch") {
+    [-0.25, 0, 0.25].forEach((x, index) => {
+      const stem = mark(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.42, 0.08), new THREE.MeshStandardMaterial({ color: "#3f9f6b" })));
+      stem.position.set(x, 0.21, 0);
+      const bloom = mark(new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), material));
+      bloom.position.set(x, 0.48, index === 1 ? 0.16 : -0.06);
+      group.add(stem, bloom);
+    });
+    return group;
+  }
+
+  if (block.id === "diamondBeacon" || block.id === "starDust") {
+    const gem = mark(new THREE.Mesh(new THREE.OctahedronGeometry(0.48), material));
+    gem.position.y = 0.72;
+    const base = mark(new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.42, 0.26, 8), new THREE.MeshStandardMaterial({ color: "#303846", roughness: 0.55 })));
+    base.position.y = 0.13;
+    group.add(base, gem);
+    return group;
+  }
+
+  if (block.id === "lavaFlow") {
+    const lava = mark(new THREE.Mesh(new THREE.BoxGeometry(1, 0.16, 1), new THREE.MeshStandardMaterial({ color: block.color, emissive: "#8f2108", emissiveIntensity: 0.5 })));
+    lava.position.y = 0.05;
+    group.add(lava);
     return group;
   }
 
@@ -391,7 +535,16 @@ function createBlockMesh(block: PlacedBlock) {
     return group;
   }
 
-  const height = block.id === "brickBlock" || block.id === "glassBlock" || block.id === "woodBlock" ? 0.9 : 0.62;
+  const height =
+    block.id === "brickBlock" ||
+    block.id === "glassBlock" ||
+    block.id === "woodBlock" ||
+    block.id === "quartzBlock" ||
+    block.id === "coralBlock" ||
+    block.id === "shellBlock" ||
+    block.id === "iceBlock"
+      ? 0.9
+      : 0.62;
   const cube = mark(new THREE.Mesh(new THREE.BoxGeometry(0.9, height, 0.9), material));
   cube.position.y = height / 2;
   group.add(cube);
@@ -400,24 +553,57 @@ function createBlockMesh(block: PlacedBlock) {
 
 function createTerrainMaterial() {
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 512;
+  canvas.width = 1024;
+  canvas.height = 1024;
   const context = canvas.getContext("2d");
   if (context) {
-    context.fillStyle = "#3f6840";
-    context.fillRect(0, 0, 512, 512);
-    context.fillStyle = "#4f7a43";
-    context.fillRect(0, 0, 256, 256);
-    context.fillStyle = "#2f6a46";
-    context.fillRect(0, 256, 256, 256);
-    context.fillStyle = "#caa766";
-    context.fillRect(256, 0, 256, 256);
-    context.fillStyle = "#6f7779";
-    context.fillRect(256, 256, 256, 256);
+    context.fillStyle = "#456f42";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    paintBlob(context, 220, 250, 260, 170, "#5b874b", 0.75);
+    paintBlob(context, 265, 760, 270, 190, "#2f6f47", 0.8);
+    paintBlob(context, 710, 270, 260, 170, "#caa766", 0.82);
+    paintBlob(context, 735, 730, 260, 220, "#717a7d", 0.72);
+    paintBlob(context, 505, 160, 175, 95, "#d1bd78", 0.65);
+    paintBlob(context, 490, 855, 150, 95, "#aeb4ba", 0.55);
+
+    for (let i = 0; i < 90; i += 1) {
+      const x = (Math.sin(i * 17.21) * 0.5 + 0.5) * canvas.width;
+      const y = (Math.cos(i * 9.73) * 0.5 + 0.5) * canvas.height;
+      const radiusX = 18 + ((i * 13) % 62);
+      const radiusY = 12 + ((i * 19) % 48);
+      const color = i % 5 === 0 ? "#618a4e" : i % 5 === 1 ? "#3f7847" : i % 5 === 2 ? "#567247" : i % 5 === 3 ? "#6f7779" : "#d0b673";
+      paintBlob(context, x, y, radiusX, radiusY, color, 0.15);
+    }
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.88 });
+}
+
+function paintBlob(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radiusX: number,
+  radiusY: number,
+  color: string,
+  alpha: number,
+) {
+  context.save();
+  context.globalAlpha = alpha;
+  context.fillStyle = color;
+  context.beginPath();
+  for (let i = 0; i <= 12; i += 1) {
+    const angle = (Math.PI * 2 * i) / 12;
+    const wobble = 0.78 + 0.22 * Math.sin(i * 2.3 + x * 0.01);
+    const px = x + Math.cos(angle) * radiusX * wobble;
+    const py = y + Math.sin(angle) * radiusY * (0.82 + 0.18 * Math.cos(i * 1.7 + y * 0.01));
+    if (i === 0) context.moveTo(px, py);
+    else context.lineTo(px, py);
+  }
+  context.closePath();
+  context.fill();
+  context.restore();
 }
 
 function createAvatar(nickname: string) {
