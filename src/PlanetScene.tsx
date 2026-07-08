@@ -106,7 +106,7 @@ export function PlanetScene({
       camera.lookAt(pan.x, 0, pan.z);
     };
 
-    if (cameraMode === "avatar") {
+    const updateAvatarCamera = () => {
       camera.position.set(avatarPosition.x, 1.55, avatarPosition.z + 0.2);
       const yaw = lookRef.current.yaw;
       const pitch = lookRef.current.pitch;
@@ -115,6 +115,10 @@ export function PlanetScene({
         1.45 + pitch,
         avatarPosition.z - Math.cos(yaw) * 8,
       );
+    };
+
+    if (cameraMode === "avatar") {
+      updateAvatarCamera();
     } else {
       updateOverheadCamera();
     }
@@ -187,6 +191,17 @@ export function PlanetScene({
         }
       }
 
+      if (pointerAction?.mode === "place" && cameraMode === "avatar") {
+        const totalDx = event.clientX - pointerAction.startX;
+        const totalDy = event.clientY - pointerAction.startY;
+        if (Math.hypot(totalDx, totalDy) > 4) {
+          pointerAction.mode = "look";
+          pointerAction.dragged = true;
+          isLooking = true;
+          lastPointer = { x: pointerAction.lastX, y: pointerAction.lastY };
+        }
+      }
+
       if (pointerAction?.mode === "pan") {
         const dx = event.clientX - pointerAction.lastX;
         const dy = event.clientY - pointerAction.lastY;
@@ -204,12 +219,8 @@ export function PlanetScene({
       const dy = event.clientY - lastPointer.y;
       lastPointer = { x: event.clientX, y: event.clientY };
       lookRef.current.yaw += dx * 0.008;
-      lookRef.current.pitch = Math.max(-3, Math.min(3, lookRef.current.pitch - dy * 0.015));
-      camera.lookAt(
-        avatarPosition.x + Math.sin(lookRef.current.yaw) * 8,
-        1.45 + lookRef.current.pitch,
-        avatarPosition.z - Math.cos(lookRef.current.yaw) * 8,
-      );
+      lookRef.current.pitch = Math.max(-4.5, Math.min(4.5, lookRef.current.pitch - dy * 0.015));
+      updateAvatarCamera();
     };
 
     const handleLookStart = (event: PointerEvent) => {
@@ -258,6 +269,7 @@ export function PlanetScene({
       frame = requestAnimationFrame(animate);
       avatar.rotation.y += 0.006;
       if (cameraMode === "overhead") updateOverheadCamera();
+      if (cameraMode === "avatar") updateAvatarCamera();
       renderer.render(scene, camera);
     };
     animate();
@@ -281,26 +293,55 @@ export function PlanetScene({
 
 function addRiver(world: THREE.Group) {
   const riverMaterial = new THREE.MeshStandardMaterial({ color: "#2f86d7", roughness: 0.35, metalness: 0.08 });
-  const river = new THREE.Group();
-  [
-    [-18, 0.03, -24, 9, 0.08, 2.5],
-    [-13, 0.04, -16, 10, 0.08, 2.4],
-    [-7, 0.05, -8, 11, 0.08, 2.3],
-    [0, 0.06, 0, 11, 0.08, 2.2],
-    [8, 0.07, 8, 10, 0.08, 2.1],
-    [16, 0.08, 17, 9, 0.08, 2],
-  ].forEach(([x, y, z, width, height, depth]) => {
-    const segment = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), riverMaterial);
-    segment.position.set(x, y, z);
-    segment.rotation.y = -0.45;
-    river.add(segment);
-  });
+  const riverPath = [
+    new THREE.Vector3(-21, 0.07, -20),
+    new THREE.Vector3(-17, 0.07, -15),
+    new THREE.Vector3(-13, 0.07, -9),
+    new THREE.Vector3(-8, 0.07, -3),
+    new THREE.Vector3(-3, 0.07, 3),
+    new THREE.Vector3(3, 0.07, 9),
+    new THREE.Vector3(10, 0.07, 14),
+    new THREE.Vector3(17, 0.07, 18),
+  ];
+
+  const river = new THREE.Mesh(createRibbonGeometry(riverPath, 2.6), riverMaterial);
+  river.rotation.x = -Math.PI / 2;
+  river.position.y = 0.11;
+  river.receiveShadow = true;
   world.add(river);
 
   const falls = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.7, 0.26), riverMaterial);
   falls.position.set(16, 1.25, 13.4);
   falls.rotation.z = 0.12;
   world.add(falls);
+}
+
+function createRibbonGeometry(points: THREE.Vector3[], width: number) {
+  const left: THREE.Vector2[] = [];
+  const right: THREE.Vector2[] = [];
+  const halfWidth = width / 2;
+
+  points.forEach((point, index) => {
+    const previous = points[Math.max(0, index - 1)];
+    const next = points[Math.min(points.length - 1, index + 1)];
+    const dx = next.x - previous.x;
+    const dz = next.z - previous.z;
+    const length = Math.hypot(dx, dz) || 1;
+    const normalX = -dz / length;
+    const normalZ = dx / length;
+    left.push(new THREE.Vector2(point.x + normalX * halfWidth, point.z + normalZ * halfWidth));
+    right.push(new THREE.Vector2(point.x - normalX * halfWidth, point.z - normalZ * halfWidth));
+  });
+
+  const shape = new THREE.Shape();
+  shape.moveTo(left[0].x, left[0].y);
+  left.slice(1).forEach((point) => shape.lineTo(point.x, point.y));
+  right
+    .slice()
+    .reverse()
+    .forEach((point) => shape.lineTo(point.x, point.y));
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape);
 }
 
 function addLake(world: THREE.Group) {
@@ -337,8 +378,10 @@ function addTerrainDetails(world: THREE.Group) {
     mountain.castShadow = true;
     world.add(mountain);
 
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.05, height * 0.28, 9), snowMaterial);
-    cap.position.set(x, height * 0.84, z);
+    const capHeight = height * 0.38;
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.35, capHeight, 9), snowMaterial);
+    cap.position.set(x, height - capHeight / 2 + 0.03, z);
+    cap.castShadow = true;
     world.add(cap);
   });
 
