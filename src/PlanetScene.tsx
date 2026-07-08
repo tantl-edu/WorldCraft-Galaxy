@@ -32,6 +32,7 @@ export function PlanetScene({
   const placeRef = useRef(onPlaceBlock);
   const deleteRef = useRef(onDeleteBlock);
   const lookRef = useRef({ yaw: 0, pitch: 0 });
+  const cameraPanRef = useRef({ x: avatarPosition.x, z: avatarPosition.z });
 
   useEffect(() => {
     selectedRef.current = selectedBlock;
@@ -39,6 +40,12 @@ export function PlanetScene({
     placeRef.current = onPlaceBlock;
     deleteRef.current = onDeleteBlock;
   }, [selectedBlock, toolMode, onPlaceBlock, onDeleteBlock]);
+
+  useEffect(() => {
+    if (cameraMode === "overhead") {
+      cameraPanRef.current = { x: avatarPosition.x, z: avatarPosition.z };
+    }
+  }, [avatarPosition.x, avatarPosition.z, cameraMode]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -93,6 +100,12 @@ export function PlanetScene({
     avatar.visible = cameraMode !== "avatar";
     world.add(avatar);
 
+    const updateOverheadCamera = () => {
+      const pan = cameraPanRef.current;
+      camera.position.set(pan.x + 42, 34, pan.z + 42);
+      camera.lookAt(pan.x, 0, pan.z);
+    };
+
     if (cameraMode === "avatar") {
       camera.position.set(avatarPosition.x, 1.55, avatarPosition.z + 0.2);
       const yaw = lookRef.current.yaw;
@@ -103,8 +116,7 @@ export function PlanetScene({
         avatarPosition.z - Math.cos(yaw) * 8,
       );
     } else {
-      camera.position.set(42, 34, 42);
-      camera.lookAt(0, 0, 0);
+      updateOverheadCamera();
     }
 
     const raycaster = new THREE.Raycaster();
@@ -118,8 +130,7 @@ export function PlanetScene({
 
     const snapToGrid = (value: number) => Math.max(-HALF_WORLD + 1, Math.min(HALF_WORLD - 1, Math.round(value)));
 
-    const handlePointerDown = (event: PointerEvent) => {
-      if (event.button !== 0) return;
+    const clickTerrain = (event: PointerEvent) => {
       const bounds = renderer.domElement.getBoundingClientRect();
       pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
       pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
@@ -138,12 +149,56 @@ export function PlanetScene({
       placeRef.current(selectedRef.current, snapToGrid(groundHit.point.x), snapToGrid(groundHit.point.z));
     };
 
+    let pointerAction:
+      | {
+          mode: "place" | "pan" | "look";
+          startX: number;
+          startY: number;
+          lastX: number;
+          lastY: number;
+          dragged: boolean;
+        }
+      | null = null;
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
 
     let isLooking = false;
     let lastPointer = { x: 0, y: 0 };
 
+    function handlePointerDown(event: PointerEvent) {
+      if (event.button !== 0) return;
+      pointerAction = {
+        mode: "place",
+        startX: event.clientX,
+        startY: event.clientY,
+        lastX: event.clientX,
+        lastY: event.clientY,
+        dragged: false,
+      };
+      renderer.domElement.setPointerCapture(event.pointerId);
+    }
+
     const handlePointerMove = (event: PointerEvent) => {
+      if (pointerAction?.mode === "place" && cameraMode === "overhead") {
+        const totalDx = event.clientX - pointerAction.startX;
+        const totalDy = event.clientY - pointerAction.startY;
+        if (Math.hypot(totalDx, totalDy) > 6) {
+          pointerAction.mode = "pan";
+          pointerAction.dragged = true;
+        }
+      }
+
+      if (pointerAction?.mode === "pan") {
+        const dx = event.clientX - pointerAction.lastX;
+        const dy = event.clientY - pointerAction.lastY;
+        pointerAction.lastX = event.clientX;
+        pointerAction.lastY = event.clientY;
+        const nextX = Math.max(-HALF_WORLD + 6, Math.min(HALF_WORLD - 6, cameraPanRef.current.x - dx * 0.06));
+        const nextZ = Math.max(-HALF_WORLD + 6, Math.min(HALF_WORLD - 6, cameraPanRef.current.z - dy * 0.06));
+        cameraPanRef.current = { x: nextX, z: nextZ };
+        updateOverheadCamera();
+        return;
+      }
+
       if (!isLooking || cameraMode !== "avatar") return;
       const dx = event.clientX - lastPointer.x;
       const dy = event.clientY - lastPointer.y;
@@ -160,19 +215,35 @@ export function PlanetScene({
     const handleLookStart = (event: PointerEvent) => {
       if (cameraMode !== "avatar" || event.button !== 2) return;
       event.preventDefault();
+      pointerAction = {
+        mode: "look",
+        startX: event.clientX,
+        startY: event.clientY,
+        lastX: event.clientX,
+        lastY: event.clientY,
+        dragged: true,
+      };
       isLooking = true;
       lastPointer = { x: event.clientX, y: event.clientY };
     };
 
-    const handleLookEnd = () => {
+    const handlePointerUp = (event: PointerEvent) => {
+      if (pointerAction?.mode === "place" && !pointerAction.dragged && event.button === 0) {
+        clickTerrain(event);
+      }
+      pointerAction = null;
       isLooking = false;
+      if (renderer.domElement.hasPointerCapture(event.pointerId)) {
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      }
     };
 
     const preventContextMenu = (event: MouseEvent) => event.preventDefault();
 
     renderer.domElement.addEventListener("pointerdown", handleLookStart);
     renderer.domElement.addEventListener("pointermove", handlePointerMove);
-    renderer.domElement.addEventListener("pointerup", handleLookEnd);
+    renderer.domElement.addEventListener("pointerup", handlePointerUp);
+    renderer.domElement.addEventListener("pointerleave", handlePointerUp);
     renderer.domElement.addEventListener("contextmenu", preventContextMenu);
 
     const handleResize = () => {
@@ -186,6 +257,7 @@ export function PlanetScene({
     const animate = () => {
       frame = requestAnimationFrame(animate);
       avatar.rotation.y += 0.006;
+      if (cameraMode === "overhead") updateOverheadCamera();
       renderer.render(scene, camera);
     };
     animate();
@@ -196,7 +268,8 @@ export function PlanetScene({
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
       renderer.domElement.removeEventListener("pointerdown", handleLookStart);
       renderer.domElement.removeEventListener("pointermove", handlePointerMove);
-      renderer.domElement.removeEventListener("pointerup", handleLookEnd);
+      renderer.domElement.removeEventListener("pointerup", handlePointerUp);
+      renderer.domElement.removeEventListener("pointerleave", handlePointerUp);
       renderer.domElement.removeEventListener("contextmenu", preventContextMenu);
       renderer.dispose();
       host.removeChild(renderer.domElement);

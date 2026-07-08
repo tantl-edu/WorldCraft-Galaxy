@@ -71,6 +71,7 @@ button {
 }
 
 .swap-button,
+.galaxy-button,
 .planet-badge,
 .block-button,
 .tool-button,
@@ -85,11 +86,26 @@ button {
   border-radius: 8px;
 }
 
-.swap-button {
+.hud-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   pointer-events: auto;
+}
+
+.swap-button {
   padding: 0 18px;
   color: #221807;
   background: var(--accent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.galaxy-button {
+  padding: 0 16px;
+  color: #ecf7ff;
+  background: rgba(77, 141, 255, 0.88);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
   font-weight: 800;
   cursor: pointer;
@@ -467,6 +483,54 @@ h2 {
   box-shadow: 0 24px 90px rgba(0, 0, 0, 0.45);
 }
 
+.galaxy-panel {
+  width: min(760px, 100%);
+}
+
+.galaxy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.world-card {
+  display: grid;
+  gap: 6px;
+  min-height: 132px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #f4f8ff;
+  background: rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  text-align: left;
+}
+
+.world-card span {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #10141d;
+  background: #8ee6bc;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.world-card strong {
+  font-size: 1.02rem;
+}
+
+.world-card small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.world-card.selected {
+  border-color: rgba(255, 184, 77, 0.75);
+  background: rgba(255, 184, 77, 0.13);
+}
+
 .icon-button {
   width: 44px;
   color: #10141d;
@@ -525,6 +589,10 @@ h2 {
 @media (max-width: 680px) {
   .hud-top {
     align-items: flex-start;
+  }
+
+  .hud-actions {
+    max-width: 48vw;
   }
 
   .planet-badge {

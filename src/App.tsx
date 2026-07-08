@@ -21,6 +21,7 @@ import {
   resources,
   starterPlanet,
   tradeOffers,
+  worldRegions,
   type BuildBlock,
   type PlacedBlock,
 } from "./gameData";
@@ -38,6 +39,7 @@ export function App() {
   const [toolMode, setToolMode] = useState<ToolMode>("build");
   const [cameraMode, setCameraMode] = useState<CameraMode>("overhead");
   const [resourcePickerOpen, setResourcePickerOpen] = useState(false);
+  const [galaxyMapOpen, setGalaxyMapOpen] = useState(false);
   const [placedBlocks, setPlacedBlocks] = useState<PlacedBlock[]>(starterBuilds);
   const [tradeOpen, setTradeOpen] = useState(false);
   const [acceptedTrades, setAcceptedTrades] = useState<string[]>([]);
@@ -105,14 +107,29 @@ export function App() {
     setDraftNickname(cleaned || "SkyBuilder");
   };
 
+  const travelToRegion = (region: (typeof worldRegions)[number]) => {
+    setAvatarPosition({
+      x: Math.max(-28, Math.min(28, Math.round(region.center.x))),
+      z: Math.max(-28, Math.min(28, Math.round(region.center.z))),
+    });
+    setCameraMode("overhead");
+    setGalaxyMapOpen(false);
+  };
+
   return (
     <main className="app-shell">
       <section className="game-stage">
         <div className="hud-top">
-          <button className="swap-button" type="button" onClick={() => setTradeOpen(true)}>
-            <Shuffle size={19} />
-            <span>Swap</span>
-          </button>
+          <div className="hud-actions">
+            <button className="swap-button" type="button" onClick={() => setTradeOpen(true)}>
+              <Shuffle size={19} />
+              <span>Swap</span>
+            </button>
+            <button className="galaxy-button" type="button" onClick={() => setGalaxyMapOpen(true)}>
+              <Map size={19} />
+              <span>Galaxy Map</span>
+            </button>
+          </div>
 
           <div className="planet-badge">
             <Globe2 size={18} />
@@ -343,6 +360,44 @@ export function App() {
             <div className="visitor-note">
               <Eye size={17} />
               <span>Future public worlds can allow visitors to explore without building or deleting.</span>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {galaxyMapOpen && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setGalaxyMapOpen(false)}>
+          <section className="trade-panel galaxy-panel" role="dialog" aria-modal="true" aria-label="Galaxy map" onClick={(event) => event.stopPropagation()}>
+            <div className="title-row">
+              <div>
+                <p className="eyebrow">Galaxy Map</p>
+                <h2>Choose a Place to Explore</h2>
+              </div>
+              <button className="icon-button" type="button" onClick={() => setGalaxyMapOpen(false)} aria-label="Close galaxy map">
+                <Check size={20} />
+              </button>
+            </div>
+
+            <p className="planet-copy">
+              Jump to a natural region now. Later these can become separate planets with their own full-size maps.
+            </p>
+
+            <div className="galaxy-grid">
+              {worldRegions.map((region) => {
+                const isCurrent = region.name === currentRegion.name;
+                return (
+                  <button
+                    className={isCurrent ? "world-card selected" : "world-card"}
+                    key={region.name}
+                    type="button"
+                    onClick={() => travelToRegion(region)}
+                  >
+                    <span>{isCurrent ? "Here now" : "Travel"}</span>
+                    <strong>{region.name}</strong>
+                    <small>{region.biome}</small>
+                  </button>
+                );
+              })}
             </div>
           </section>
         </div>
