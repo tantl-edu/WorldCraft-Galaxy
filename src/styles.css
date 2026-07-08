@@ -111,7 +111,7 @@ button {
   right: 18px;
   bottom: 18px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(118px, max-content));
   gap: 10px;
   padding: 10px;
   border: 1px solid var(--line);
@@ -143,9 +143,68 @@ button {
   background: #a43f3f;
 }
 
+.resource-toggle {
+  background: #8fb7ff;
+}
+
+.selected-block-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid rgba(255, 184, 77, 0.45);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #f6f8ff;
+  background: rgba(255, 184, 77, 0.12);
+  font-weight: 850;
+}
+
+.resource-picker {
+  position: absolute;
+  z-index: 5;
+  left: 18px;
+  right: 18px;
+  bottom: 92px;
+  display: grid;
+  gap: 12px;
+  max-height: min(48vh, 420px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(17, 21, 31, 0.9);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+}
+
+.resource-picker-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.resource-picker-heading span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.resource-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  gap: 10px;
+}
+
 .block-button.selected {
   border-color: rgba(255, 184, 77, 0.8);
   background: rgba(255, 184, 77, 0.18);
+}
+
+.block-button.locked {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 .tool-button.selected {
@@ -473,9 +532,11 @@ h2 {
   }
 
   .build-toolbar {
-    grid-template-columns: repeat(2, 1fr);
-    max-height: 46vh;
-    overflow: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .resource-picker {
+    bottom: 164px;
   }
 
   .block-button,

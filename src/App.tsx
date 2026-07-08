@@ -3,6 +3,7 @@ import {
   Camera,
   Check,
   Eye,
+  Grid2X2,
   Globe2,
   Hammer,
   Lock,
@@ -30,19 +31,13 @@ type CameraMode = "overhead" | "avatar";
 type AvatarPosition = { x: number; z: number };
 
 const starterBuilds: PlacedBlock[] = [
-  { ...buildBlocks[7], instanceId: "home-1", x: -12, y: 0, z: -8 },
-  { ...buildBlocks[2], instanceId: "brick-1", x: -10, y: 0, z: -8 },
-  { ...buildBlocks[2], instanceId: "brick-2", x: -10, y: 1, z: -8 },
-  { ...buildBlocks[8], instanceId: "slide-1", x: 4, y: 0, z: -9 },
-  { ...buildBlocks[10], instanceId: "lift-1", x: 12, y: 0, z: 8 },
-  { ...buildBlocks[6], instanceId: "tree-1", x: -16, y: 0, z: 10 },
-  { ...buildBlocks[5], instanceId: "cactus-1", x: 15, y: 0, z: -13 },
 ];
 
 export function App() {
-  const [selectedBlockId, setSelectedBlockId] = useState(buildBlocks[8].id);
+  const [selectedBlockId, setSelectedBlockId] = useState(buildBlocks[0].id);
   const [toolMode, setToolMode] = useState<ToolMode>("build");
   const [cameraMode, setCameraMode] = useState<CameraMode>("overhead");
+  const [resourcePickerOpen, setResourcePickerOpen] = useState(false);
   const [placedBlocks, setPlacedBlocks] = useState<PlacedBlock[]>(starterBuilds);
   const [tradeOpen, setTradeOpen] = useState(false);
   const [acceptedTrades, setAcceptedTrades] = useState<string[]>([]);
@@ -57,6 +52,11 @@ export function App() {
 
   const selectedResource = resources.find((resource) => resource.id === selectedBlock.resourceId);
   const currentRegion = getWorldRegion(avatarPosition.x, avatarPosition.z);
+  const tradedOrigins = acceptedTrades
+    .map((tradeId) => tradeOffers.find((offer) => offer.id === tradeId)?.unlockOrigin)
+    .filter((origin): origin is string => Boolean(origin));
+  const unlockedOrigins = new Set<string>(["Auralis Reach", ...tradedOrigins]);
+  const availableBlocks = buildBlocks.filter((block) => block.unlock === "local" || unlockedOrigins.has(block.origin));
   const buildScore = placedBlocks.length * 12 + acceptedTrades.length * 18;
 
   useEffect(() => {
@@ -82,6 +82,10 @@ export function App() {
   }, []);
 
   const placeBlock = (block: BuildBlock, x: number, z: number) => {
+    if (block.unlock === "trade" && !unlockedOrigins.has(block.origin)) {
+      setTradeOpen(true);
+      return;
+    }
     setPlacedBlocks((current) => {
       const stack = current.filter((placed) => placed.x === x && placed.z === z);
       const shouldStack = block.category === "building";
@@ -160,21 +164,47 @@ export function App() {
             <Camera size={18} />
             <span>Avatar View</span>
           </button>
-          {buildBlocks.map((block) => (
-            <button
-              className={block.id === selectedBlock.id ? "block-button selected" : "block-button"}
-              key={block.id}
-              type="button"
-              onClick={() => setSelectedBlockId(block.id)}
-            >
-              <span className="block-swatch" style={{ background: block.color }} />
-              <span>
-                {block.label}
-                <small>{block.origin}</small>
-              </span>
-            </button>
-          ))}
+          <button className="tool-button resource-toggle" type="button" onClick={() => setResourcePickerOpen((open) => !open)}>
+            <Grid2X2 size={18} />
+            <span>Resources</span>
+          </button>
+          <div className="selected-block-chip">
+            <span className="block-swatch" style={{ background: selectedBlock.color }} />
+            <span>{selectedBlock.label}</span>
+          </div>
         </div>
+
+        {resourcePickerOpen && (
+          <div className="resource-picker" aria-label="Resource picker">
+            <div className="resource-picker-heading">
+              <strong>Resources</strong>
+              <span>Local blocks are always available. Trade unlocks special planets.</span>
+            </div>
+            <div className="resource-picker-grid">
+              {buildBlocks.map((block) => {
+                const locked = !availableBlocks.some((available) => available.id === block.id);
+                return (
+                  <button
+                    className={block.id === selectedBlock.id ? "block-button selected" : locked ? "block-button locked" : "block-button"}
+                    disabled={locked}
+                    key={block.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedBlockId(block.id);
+                      setResourcePickerOpen(false);
+                    }}
+                  >
+                    <span className="block-swatch" style={{ background: block.color }} />
+                    <span>
+                      {block.label}
+                      <small>{locked ? "Trade to unlock" : block.origin}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </section>
 
       <aside className="command-panel">
@@ -231,7 +261,7 @@ export function App() {
             <strong>{buildScore}</strong>
           </div>
           <div>
-            <span>Blocks</span>
+            <span>User Blocks</span>
             <strong>{placedBlocks.length}</strong>
           </div>
         </div>

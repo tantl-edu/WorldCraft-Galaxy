@@ -16,6 +16,7 @@ export type BuildBlock = {
   resourceId: string;
   origin: string;
   category: "terrain" | "plant" | "building" | "special";
+  unlock: "local" | "trade";
   color: string;
 };
 
@@ -40,6 +41,7 @@ export type TradeOffer = {
   from: string;
   wants: string;
   gives: string;
+  unlockOrigin: string;
   status: "Open" | "Pending" | "Accepted";
 };
 
@@ -79,14 +81,58 @@ export const resources: Resource[] = [
   },
   {
     id: "wood",
-    name: "Prismwood",
-    origin: "Viretta Canopy",
-    amount: 48,
-    value: 5,
-    rarity: "Useful",
-    color: "#6ecb8f",
-    description: "Flexible glowing wood from glassleaf forests.",
-    uses: ["homes", "bridges", "sky docks", "starter tools"],
+    name: "Timber",
+    origin: "Auralis Reach",
+    amount: 90,
+    value: 3,
+    rarity: "Common",
+    color: "#8a5a31",
+    description: "Local wood from starter-world groves.",
+    uses: ["homes", "bridges", "tools", "roof frames"],
+  },
+  {
+    id: "grass",
+    name: "Grass Block",
+    origin: "Auralis Reach",
+    amount: 120,
+    value: 1,
+    rarity: "Common",
+    color: "#4f8d46",
+    description: "Basic terrain block for shaping fields and hills.",
+    uses: ["lawns", "parks", "hills", "gardens"],
+  },
+  {
+    id: "dirt",
+    name: "Dirt",
+    origin: "Auralis Reach",
+    amount: 130,
+    value: 1,
+    rarity: "Common",
+    color: "#7b5638",
+    description: "Basic earth for shaping land and stacking natural terrain.",
+    uses: ["hills", "paths", "farms", "foundations"],
+  },
+  {
+    id: "sand",
+    name: "Sand",
+    origin: "Auralis Reach",
+    amount: 88,
+    value: 2,
+    rarity: "Common",
+    color: "#d4b36f",
+    description: "Starter sand from lake beaches and dry regions.",
+    uses: ["beaches", "desert towns", "glass prep", "paths"],
+  },
+  {
+    id: "stone",
+    name: "Stone",
+    origin: "Auralis Reach",
+    amount: 96,
+    value: 3,
+    rarity: "Common",
+    color: "#8f9692",
+    description: "Reliable local rock for walls, steps, and mountain builds.",
+    uses: ["walls", "roads", "bridges", "towers"],
   },
   {
     id: "clay",
@@ -157,17 +203,20 @@ export const resources: Resource[] = [
 ];
 
 export const buildBlocks: BuildBlock[] = [
-  { id: "waterway", label: "Water", resourceId: "water", origin: "Auralis Reach", category: "terrain", color: "#3d8ce8" },
-  { id: "woodBlock", label: "Wood", resourceId: "wood", origin: "Viretta Canopy", category: "building", color: "#8a5a31" },
-  { id: "brickBlock", label: "Brick", resourceId: "brick", origin: "Auralis Reach", category: "building", color: "#bf5942" },
-  { id: "glassBlock", label: "Glass", resourceId: "glow", origin: "Lunara Highlands", category: "building", color: "#79d9f7" },
-  { id: "glowPath", label: "Glow Path", resourceId: "glow", origin: "Lunara Highlands", category: "terrain", color: "#79f7d3" },
-  { id: "cactus", label: "Cactus", resourceId: "cactus", origin: "Cindara Dunes", category: "plant", color: "#4fa35d" },
-  { id: "pine", label: "Tree", resourceId: "wood", origin: "Viretta Canopy", category: "plant", color: "#3f9f6b" },
-  { id: "forestHome", label: "Prism Home", resourceId: "wood", origin: "Viretta Canopy", category: "building", color: "#58bd86" },
-  { id: "slide", label: "Slide Tower", resourceId: "clay", origin: "Cindara Dunes", category: "special", color: "#ff7a36" },
-  { id: "dock", label: "Star Dock", resourceId: "mineral", origin: "Lunara Quarry", category: "special", color: "#aeb8c9" },
-  { id: "lift", label: "Sky Lift", resourceId: "gas", origin: "Cloudmere Stormbelt", category: "special", color: "#d2f25d" },
+  { id: "grassBlock", label: "Grass", resourceId: "grass", origin: "Auralis Reach", category: "terrain", unlock: "local", color: "#4f8d46" },
+  { id: "dirtBlock", label: "Dirt", resourceId: "dirt", origin: "Auralis Reach", category: "terrain", unlock: "local", color: "#7b5638" },
+  { id: "sandBlock", label: "Sand", resourceId: "sand", origin: "Auralis Reach", category: "terrain", unlock: "local", color: "#d4b36f" },
+  { id: "stoneBlock", label: "Stone", resourceId: "stone", origin: "Auralis Reach", category: "building", unlock: "local", color: "#8f9692" },
+  { id: "waterway", label: "Water", resourceId: "water", origin: "Auralis Reach", category: "terrain", unlock: "local", color: "#3d8ce8" },
+  { id: "woodBlock", label: "Wood", resourceId: "wood", origin: "Auralis Reach", category: "building", unlock: "local", color: "#8a5a31" },
+  { id: "brickBlock", label: "Brick", resourceId: "brick", origin: "Auralis Reach", category: "building", unlock: "local", color: "#bf5942" },
+  { id: "pine", label: "Tree", resourceId: "wood", origin: "Auralis Reach", category: "plant", unlock: "local", color: "#3f9f6b" },
+  { id: "glassBlock", label: "Glass", resourceId: "glow", origin: "Lunara Highlands", category: "building", unlock: "trade", color: "#79d9f7" },
+  { id: "glowPath", label: "Glow Path", resourceId: "glow", origin: "Lunara Highlands", category: "terrain", unlock: "trade", color: "#79f7d3" },
+  { id: "cactus", label: "Cactus", resourceId: "cactus", origin: "Cindara Dunes", category: "plant", unlock: "trade", color: "#4fa35d" },
+  { id: "slide", label: "Slide Tower", resourceId: "clay", origin: "Cindara Dunes", category: "special", unlock: "trade", color: "#ff7a36" },
+  { id: "dock", label: "Star Dock", resourceId: "mineral", origin: "Lunara Quarry", category: "special", unlock: "trade", color: "#aeb8c9" },
+  { id: "lift", label: "Sky Lift", resourceId: "gas", origin: "Cloudmere Stormbelt", category: "special", unlock: "trade", color: "#d2f25d" },
 ];
 
 export const tradeOffers: TradeOffer[] = [
@@ -176,6 +225,7 @@ export const tradeOffers: TradeOffer[] = [
     from: "Cloudmere Outpost",
     wants: "Blue-Orange Clay",
     gives: "Sky Gas",
+    unlockOrigin: "Cloudmere Stormbelt",
     status: "Open",
   },
   {
@@ -183,6 +233,7 @@ export const tradeOffers: TradeOffer[] = [
     from: "Cindara Glasslands",
     wants: "Water",
     gives: "Star Iron",
+    unlockOrigin: "Cindara Dunes",
     status: "Pending",
   },
   {
@@ -190,6 +241,7 @@ export const tradeOffers: TradeOffer[] = [
     from: "Viretta Canopy",
     wants: "Sky Gas",
     gives: "Prismwood",
+    unlockOrigin: "Viretta Canopy",
     status: "Open",
   },
   {
@@ -197,6 +249,7 @@ export const tradeOffers: TradeOffer[] = [
     from: "Lunara Quarry",
     wants: "Prismwood",
     gives: "Star Iron",
+    unlockOrigin: "Lunara Highlands",
     status: "Open",
   },
 ];

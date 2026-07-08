@@ -31,6 +31,7 @@ export function PlanetScene({
   const toolRef = useRef(toolMode);
   const placeRef = useRef(onPlaceBlock);
   const deleteRef = useRef(onDeleteBlock);
+  const lookRef = useRef({ yaw: 0, pitch: 0 });
 
   useEffect(() => {
     selectedRef.current = selectedBlock;
@@ -73,9 +74,15 @@ export function PlanetScene({
 
     const grid = new THREE.GridHelper(WORLD_SIZE, WORLD_SIZE, "#78906e", "#486546");
     grid.position.y = 0.01;
+    const gridMaterials = Array.isArray(grid.material) ? grid.material : [grid.material];
+    gridMaterials.forEach((material) => {
+      material.transparent = true;
+      material.opacity = 0.22;
+    });
     world.add(grid);
 
     addRiver(world);
+    addLake(world);
     addTerrainDetails(world);
 
     const blockGroup = new THREE.Group();
@@ -88,7 +95,13 @@ export function PlanetScene({
 
     if (cameraMode === "avatar") {
       camera.position.set(avatarPosition.x, 1.55, avatarPosition.z + 0.2);
-      camera.lookAt(avatarPosition.x, 1.45, avatarPosition.z - 8);
+      const yaw = lookRef.current.yaw;
+      const pitch = lookRef.current.pitch;
+      camera.lookAt(
+        avatarPosition.x + Math.sin(yaw) * 8,
+        1.45 + pitch,
+        avatarPosition.z - Math.cos(yaw) * 8,
+      );
     } else {
       camera.position.set(42, 34, 42);
       camera.lookAt(0, 0, 0);
@@ -106,6 +119,7 @@ export function PlanetScene({
     const snapToGrid = (value: number) => Math.max(-HALF_WORLD + 1, Math.min(HALF_WORLD - 1, Math.round(value)));
 
     const handlePointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
       const bounds = renderer.domElement.getBoundingClientRect();
       pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
       pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
@@ -126,6 +140,41 @@ export function PlanetScene({
 
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
 
+    let isLooking = false;
+    let lastPointer = { x: 0, y: 0 };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!isLooking || cameraMode !== "avatar") return;
+      const dx = event.clientX - lastPointer.x;
+      const dy = event.clientY - lastPointer.y;
+      lastPointer = { x: event.clientX, y: event.clientY };
+      lookRef.current.yaw += dx * 0.008;
+      lookRef.current.pitch = Math.max(-3, Math.min(3, lookRef.current.pitch - dy * 0.015));
+      camera.lookAt(
+        avatarPosition.x + Math.sin(lookRef.current.yaw) * 8,
+        1.45 + lookRef.current.pitch,
+        avatarPosition.z - Math.cos(lookRef.current.yaw) * 8,
+      );
+    };
+
+    const handleLookStart = (event: PointerEvent) => {
+      if (cameraMode !== "avatar" || event.button !== 2) return;
+      event.preventDefault();
+      isLooking = true;
+      lastPointer = { x: event.clientX, y: event.clientY };
+    };
+
+    const handleLookEnd = () => {
+      isLooking = false;
+    };
+
+    const preventContextMenu = (event: MouseEvent) => event.preventDefault();
+
+    renderer.domElement.addEventListener("pointerdown", handleLookStart);
+    renderer.domElement.addEventListener("pointermove", handlePointerMove);
+    renderer.domElement.addEventListener("pointerup", handleLookEnd);
+    renderer.domElement.addEventListener("contextmenu", preventContextMenu);
+
     const handleResize = () => {
       camera.aspect = host.clientWidth / host.clientHeight;
       camera.updateProjectionMatrix();
@@ -145,6 +194,10 @@ export function PlanetScene({
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", handleResize);
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      renderer.domElement.removeEventListener("pointerdown", handleLookStart);
+      renderer.domElement.removeEventListener("pointermove", handlePointerMove);
+      renderer.domElement.removeEventListener("pointerup", handleLookEnd);
+      renderer.domElement.removeEventListener("contextmenu", preventContextMenu);
       renderer.dispose();
       host.removeChild(renderer.domElement);
     };
@@ -172,6 +225,22 @@ function addRiver(world: THREE.Group) {
   world.add(river);
 }
 
+function addLake(world: THREE.Group) {
+  const lakeMaterial = new THREE.MeshStandardMaterial({ color: "#2f86d7", roughness: 0.28, metalness: 0.1 });
+  const lake = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 7.5, 0.1, 32), lakeMaterial);
+  lake.position.set(-19, 0.08, -18);
+  lake.scale.set(1.25, 1, 0.72);
+  lake.receiveShadow = true;
+  world.add(lake);
+
+  const beachMaterial = new THREE.MeshStandardMaterial({ color: "#d4b36f", roughness: 0.95 });
+  const beach = new THREE.Mesh(new THREE.CylinderGeometry(7.5, 8.6, 0.08, 32), beachMaterial);
+  beach.position.set(-19, 0.025, -18);
+  beach.scale.set(1.3, 1, 0.78);
+  beach.receiveShadow = true;
+  world.add(beach);
+}
+
 function addTerrainDetails(world: THREE.Group) {
   const mountainMaterial = new THREE.MeshStandardMaterial({ color: "#7f8287", roughness: 0.9 });
   const snowMaterial = new THREE.MeshStandardMaterial({ color: "#dfe8ef", roughness: 0.65 });
@@ -184,16 +253,28 @@ function addTerrainDetails(world: THREE.Group) {
     [13, 19, 3.8],
     [20, 24, 3.2],
   ].forEach(([x, z, height]) => {
-    const mountain = new THREE.Mesh(new THREE.ConeGeometry(1.45, height, 4), mountainMaterial);
+    const mountain = new THREE.Mesh(new THREE.ConeGeometry(3.1, height, 9), mountainMaterial);
     mountain.position.set(x, height / 2, z);
-    mountain.rotation.y = Math.PI / 4;
     mountain.castShadow = true;
     world.add(mountain);
 
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.55, height * 0.32, 4), snowMaterial);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.05, height * 0.28, 9), snowMaterial);
     cap.position.set(x, height * 0.84, z);
-    cap.rotation.y = Math.PI / 4;
     world.add(cap);
+  });
+
+  [
+    [-8, -21, 2.2, 5.8, 3.1],
+    [-2, -18, 1.7, 4.7, 2.8],
+    [-13, -9, 1.4, 4.1, 2.7],
+    [5, 23, 1.9, 5.2, 3.4],
+  ].forEach(([x, z, height, sx, sz]) => {
+    const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 10), new THREE.MeshStandardMaterial({ color: "#507849", roughness: 0.92 }));
+    hill.scale.set(sx, height, sz);
+    hill.position.set(x, height * 0.1, z);
+    hill.castShadow = true;
+    hill.receiveShadow = true;
+    world.add(hill);
   });
 
   const desert = new THREE.Mesh(new THREE.BoxGeometry(25, 0.09, 25), sandMaterial);
@@ -209,6 +290,14 @@ function addTerrainDetails(world: THREE.Group) {
     [-7, 20],
     [-24, 24],
     [-4, 9],
+    [-24, -7],
+    [-21, -5],
+    [-17, -6],
+    [-15, -2],
+    [-10, 1],
+    [3, 15],
+    [7, 18],
+    [10, 21],
   ].forEach(([x, z]) => {
     const tree = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.8, 6), forestMaterial);
     tree.position.set(x, 0.9, z);
